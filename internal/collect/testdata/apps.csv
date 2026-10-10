@@ -1,0 +1,5 @@
+/usr/local/bin/ollama, 15900
+/usr/bin/llama-server, 4096
+/usr/bin/python3, 1200
+/opt/vllm/bin/vllm, 2048
+/usr/local/lib/ollama/ollama_llama_server, 100

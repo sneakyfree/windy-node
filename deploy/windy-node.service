@@ -1,0 +1,33 @@
+[Unit]
+Description=windy-node: tells Windy Mind what this machine is doing (outbound only)
+Documentation=https://github.com/sneakyfree/windy-node
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/windy-node run
+Restart=on-failure
+RestartSec=30
+# Enrolment writes /etc/windy-node (token 0600); readings wait in /var/lib/windy-node while offline.
+StateDirectory=windy-node
+StateDirectoryMode=0700
+ConfigurationDirectory=windy-node
+ConfigurationDirectoryMode=0700
+# No listening sockets, no shell, read-only system.
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+SystemCallArchitectures=native
+CapabilityBoundingSet=
+AmbientCapabilities=
+
+[Install]
+WantedBy=multi-user.target
