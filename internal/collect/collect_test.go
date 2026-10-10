@@ -114,6 +114,33 @@ func TestOllamaPSShowsCPUSpill(t *testing.T) {
 	}
 }
 
+func TestOllamaIsReadOnlyWhenItRunsHere(t *testing.T) {
+	hits := 0
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		hits++
+		_, _ = w.Write(fixture(t, "ps.json"))
+	}))
+	defer srv.Close()
+	root := t.TempDir()
+	comm := func(pid, name string) {
+		_ = os.MkdirAll(filepath.Join(root, "proc", pid), 0o755)
+		if err := os.WriteFile(filepath.Join(root, "proc", pid, "comm"), []byte(name+"\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	comm("812", "ssh") // Kit 0: the port answers, but it is a forward to another machine
+	s := &Sampler{Root: root, OllamaURL: srv.URL, Version: "test"}
+	r := s.Reading(context.Background(), 15*time.Second)
+	if r.Ollama.Reachable || len(r.Ollama.Models) != 0 || hits != 0 {
+		t.Fatalf("a forwarded port must not read as this machine's Ollama: %+v hits=%d", r.Ollama, hits)
+	}
+	comm("4242", "ollama")
+	r = s.Reading(context.Background(), 15*time.Second)
+	if !r.Ollama.Reachable || len(r.Ollama.Models) != 2 || hits != 1 {
+		t.Fatalf("local Ollama must be read: %+v hits=%d", r.Ollama, hits)
+	}
+}
+
 func TestSamplerReadsAFakeRoot(t *testing.T) {
 	root := t.TempDir()
 	write := func(p string, b []byte) {
