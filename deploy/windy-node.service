@@ -9,11 +9,13 @@ Type=simple
 ExecStart=/usr/local/bin/windy-node run
 Restart=on-failure
 RestartSec=30
-# Enrolment writes /etc/windy-node (token 0600); readings wait in /var/lib/windy-node while offline.
+# Runs as its own unprivileged user. Token (0600), node.json and the offline outbox live in /var/lib/windy-node;
+# put an empty file named no-commands there to refuse every command.
+User=windy-node
+Group=windy-node
+Environment=WINDY_NODE_DIR=/var/lib/windy-node
 StateDirectory=windy-node
 StateDirectoryMode=0700
-ConfigurationDirectory=windy-node
-ConfigurationDirectoryMode=0700
 # No listening sockets, no shell, read-only system.
 NoNewPrivileges=yes
 ProtectSystem=strict

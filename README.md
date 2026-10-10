@@ -15,22 +15,27 @@ A small agent that tells **Windy Mind** what a machine is doing: its vitals and 
 
 Your node token is stored in a file only root (or you) can read, and it is only ever sent in a request header, never in a URL.
 
-**Opt out of commands:** create an empty file named `no-commands` in the config directory (`/etc/windy-node/` for the service). Every command is refused while it exists.
-
 ## Install (Linux)
 
 ```sh
-sudo install -m 0755 windy-node-linux-amd64 /usr/local/bin/windy-node
-sudo windy-node enrol --code ABCD-1234     # the one-time code Windy shows you after you sign in (10 minutes)
+sudo useradd --system --no-create-home --shell /usr/sbin/nologin windy-node
+sudo install -m 0755 windy-node-linux-amd64 /usr/local/bin/windy-node      # check SHA256SUMS first
+sudo install -d -o windy-node -g windy-node -m 0700 /var/lib/windy-node
+# the one-time code Windy shows you after you sign in (10 minutes, single use):
+sudo -u windy-node env WINDY_NODE_DIR=/var/lib/windy-node windy-node enrol --code WN-ABCD-1234 --label my-machine
 # approve the machine in Windy, then:
 sudo install -m 0644 deploy/windy-node.service /etc/systemd/system/
-sudo systemctl enable --now windy-node
-windy-node status
+sudo systemctl daemon-reload && sudo systemctl enable --now windy-node
+sudo -u windy-node env WINDY_NODE_DIR=/var/lib/windy-node windy-node status
 ```
 
-`windy-node collect --once` prints one reading on screen and sends nothing, so you can see exactly what would be shared.
+It runs as the unprivileged `windy-node` user with no capabilities and a read-only system. `windy-node collect --once` prints one reading on screen and sends nothing, so you can see exactly what would be shared.
 
-**Remove it:** `sudo systemctl disable --now windy-node`, then remove the machine in Windy (its token stops working at once).
+**Opt out of commands:** `sudo -u windy-node touch /var/lib/windy-node/no-commands`. Every command is refused while it exists.
+
+**Where it connects:** only the Windy Mind URL it was enrolled with (default `https://api.windymind.ai`), plus the local Ollama at `127.0.0.1:11434` (or `$OLLAMA_HOST`). It listens on nothing.
+
+**Remove it:** `sudo systemctl disable --now windy-node`, remove `/usr/local/bin/windy-node` and `/var/lib/windy-node`, then remove the machine in Windy (its token stops working at once).
 
 ## Build
 
