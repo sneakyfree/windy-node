@@ -130,7 +130,7 @@ func (s *Sampler) Reading(ctx context.Context, interval time.Duration) Reading {
 			r.Engines = engines
 		}
 	}
-	if s.OllamaURL != "" {
+	if s.OllamaURL != "" && s.localOllama() {
 		r.Ollama = ReadOllama(ctx, s.OllamaURL)
 	}
 	if r.Ollama.Models == nil {
@@ -142,6 +142,19 @@ func (s *Sampler) Reading(ctx context.Context, interval time.Duration) Reading {
 func kbToGB(kb uint64) float64 { return round1(float64(kb) / (1 << 20)) }
 
 // packageTemp reads the coretemp "Package id 0" sensor, if present.
+// localOllama: is an Ollama process running on THIS machine? A port that answers can be a forward to another box
+// (Kit 0, 2026-10-10: 127.0.0.1:11434 was an ssh tunnel to Veron, so v0.1.0 reported Veron's model as Kit 0's).
+// Reads /proc/<pid>/comm only (readable by any user); only the yes/no is used, no name ever leaves the node.
+func (s *Sampler) localOllama() bool {
+	comms, _ := filepath.Glob(filepath.Join(s.Root, "proc", "[0-9]*", "comm"))
+	for _, c := range comms {
+		if b, err := os.ReadFile(c); err == nil && strings.HasPrefix(strings.TrimSpace(string(b)), "ollama") {
+			return true
+		}
+	}
+	return false
+}
+
 func (s *Sampler) packageTemp() *float64 {
 	dirs, _ := filepath.Glob(filepath.Join(s.Root, "sys/class/hwmon/hwmon*"))
 	for _, d := range dirs {
